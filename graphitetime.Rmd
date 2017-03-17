@@ -1,0 +1,41 @@
+---
+title: "Do standards degrade with time?"
+author: "Brett Longworth"
+date: "March 3, 2016"
+output: html_document
+---
+
+What effect does the time between graphitization and analysis have on data quality? How long can a pressed sample wait for analysis?
+
+```{r, warning=FALSE, message=FALSE}
+# libraries
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+
+# data
+load('qcData.rda')
+
+# format dates
+std$gf_date <- ymd(std$gf_date)
+std$tp_date_pressed <- ymd(std$tp_date_pressed)
+std$runtime <- as.Date(ymd_hms(std$runtime))
+std$tgr <- std$runtime - std$gf_date
+std$tpr <- std$runtime - std$tp_date_pressed
+
+# filter it
+std.f <- filter(std, tgr < 6000, abs(sigma) < 6, primary == FALSE, frep_err < 10, fm_consensus > 0.05, fm_consensus > 0.9, gf_co2_qty > 40)
+
+# plot it up
+qplot(tgr/24, normFm, data = std.f, color = f_modern) + geom_smooth() #+ facet_grid(.~ system)
+qplot(tgr/24, frep_err, data = std.f, color = splits) + geom_smooth() #+ facet_grid(.~ system)
+
+```
+
+Time between pressing and running
+
+```{r, warning=FALSE}
+qplot(tpr/24, normFm, data = std.f, color = splits) + geom_smooth() + facet_grid(.~ system)
+qplot(tpr/24, frep_err, data = std.f, color = splits) + geom_smooth() + facet_grid(.~ system)
+```
+

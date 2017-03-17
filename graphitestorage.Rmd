@@ -1,0 +1,67 @@
+---
+title: 'Graphite storage issues'
+date: 'March 17, 2017'
+output:
+  html_document: default
+  html_notebook: default
+---
+
+A recent repeat of CLIVAR samples from graphite produced a few Fm values ~30 permil different from the first run, I started looking into sources of contamination. The test below is of four leftover splits of CLIVAR graphite run after being stored for about a month. The first two were stored upside down with graphite in contact with the cap, and the second two were stored upright.
+
+```{r}
+suppressMessages(library(amstools))
+suppressMessages(library(tidyverse))
+library(RODBC)
+library(knitr)
+
+  query <- "SELECT
+              mst_num, wheel, runtime, snics_raw.tp_num, osg_num, sample_name, 
+              ok_calc, le12c, he13_12, he14_12
+            FROM snics_raw
+            JOIN target ON target.tp_num = snics_raw.tp_num
+            WHERE osg_num IN (157120, 157119, 157122, 157121)"
+
+  db <- conNOSAMS()
+  data <- sqlQuery(db, query)
+  odbcClose(db)
+  data <- arrange(data, mst_num)
+```
+
+Plotting the raw 14/12 ratio shows there's a huge burn-in effect, and that the values stabilize about 10% low.
+
+```{r}
+ggplot(data, aes(mst_num, he14_12, color = wheel)) +
+  geom_line() + geom_point() + facet_grid(. ~ osg_num) +
+  ggtitle("Raw 14/12 measurements")
+```
+
+Looking at the normalized data with the "burn in" pruned off, there are still some big differences when the samples are touching the cap.
+
+```{r}
+query <- "SELECT
+            wheel, runtime, snics_results.tp_num, osg_num, sample_name, 
+            del_13c, fm_corr, sig_fm_corr
+          FROM snics_results
+          JOIN target ON target.tp_num = snics_results.tp_num
+          WHERE osg_num IN (157120, 157119, 157122, 157121)"
+
+db <- conNOSAMS()
+data <- sqlQuery(db, query)
+odbcClose(db)
+
+options(digits = 3)
+
+data %>% 
+  arrange(osg_num) %>% 
+  mutate(fm_corr = round(fm_corr, digits = 3), sig_fm_corr = round(sig_fm_corr, digits = 3)) %>%
+  select(osg_num, wheel, fm_corr, sig_fm_corr) %>%
+  unite(fm_corr, sig_fm_corr, col = "Fm", sep = " +- ") %>%
+  spread(wheel, Fm) %>%
+  kable()
+
+ggplot(data, aes(osg_num, fm_corr, color = wheel)) +
+  geom_pointrange(aes(ymin = fm_corr - sig_fm_corr, ymax = fm_corr + sig_fm_corr)) + 
+  geom_point() 
+
+```
+
