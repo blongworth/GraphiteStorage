@@ -34,7 +34,10 @@ std.f <- filter(std, tgr < 100,
                 frep_err < 10, 
                 fm_consensus > 0.1, 
                 fm_consensus < 1.6, 
-                gf_co2_qty > 40)
+                gf_co2_qty > 40) %>%
+  mutate(runtime = as.Date(runtime),
+         year = year(runtime),
+         month = month(runtime)) 
 ```
 
 ## Summary data
@@ -53,6 +56,28 @@ std.f %>% group_by(system) %>%
             tpr.sd = sd(tpr),
             N = n()) %>%
   kable()
+
+bymonth <- std.f %>% group_by(year, month, system) %>%
+  summarize(tgr.mean = mean(tgr),
+            tgr.median =  median(tgr),
+            tgr.sd = sd(tgr),
+            tpr.mean = mean(tpr),
+            tpr.median = median(tpr),
+            tpr.sd = sd(tpr),
+            N = n()) %>%
+  mutate(date = as.factor(mdy(sprintf('%s %s %s', month, "1", year))))
+
+kable(bymonth)
+
+ggplot(bymonth, aes(date, tgr.median)) +
+  geom_bar(aes(fill = system), stat = "identity", position = "dodge") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))  +
+  ggtitle("Time between graphitization and running over time")
+
+ggplot(bymonth, aes(date, tpr.median)) +
+  geom_bar(aes(fill = system), stat = "identity", position = "dodge") +
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
+  ggtitle("Time between pressing and running over time")
 
 ggplot(std.f, aes(tgr)) +
   geom_histogram() +
