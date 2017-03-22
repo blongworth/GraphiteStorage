@@ -1,17 +1,19 @@
 ---
 title: "Do standards degrade with time?"
 author: "Brett Longworth"
-date: "March 3, 2016"
+date: "March 22, 2017"
 output: html_document
 ---
 
 What effect does the time between graphitization and analysis have on data quality? How long can a pressed sample wait for analysis?
 
+Samples are large (>40umol) secondaries from both systems. I've also discarded samples with wild sigma and those older than 100 days. I can't see an obvious trend in the data, but it's likely that any smaller trends are masked by the distribution in time between graphitization and running.
 ```{r, warning=FALSE, message=FALSE}
 # libraries
 library(lubridate)
 library(dplyr)
 library(ggplot2)
+library(knitr)
 
 # data
 load('qcData.rda')
@@ -24,18 +26,64 @@ std$tgr <- std$runtime - std$gf_date
 std$tpr <- std$runtime - std$tp_date_pressed
 
 # filter it
-std.f <- filter(std, tgr < 6000, abs(sigma) < 6, primary == FALSE, frep_err < 10, fm_consensus > 0.05, fm_consensus > 0.9, gf_co2_qty > 40)
+std.f <- filter(std, tgr < 100,
+                tpr < 20, 
+                abs(sigma) < 20, 
+                normFm < 20,
+                primary == FALSE, 
+                frep_err < 10, 
+                fm_consensus > 0.1, 
+                fm_consensus < 1.6, 
+                gf_co2_qty > 40)
+```
 
-# plot it up
-qplot(tgr/24, normFm, data = std.f, color = f_modern) + geom_smooth() #+ facet_grid(.~ system)
-qplot(tgr/24, frep_err, data = std.f, color = splits) + geom_smooth() #+ facet_grid(.~ system)
+## Summary data
 
+Median times are probably more representitive.
+
+```{r, message=FALSE}
+
+std.f %>% group_by(system) %>%
+  select(system, tgr, tpr) %>%
+  summarize(tgr.mean = mean(tgr),
+            tgr.median =  median(tgr),
+            tgr.sd = sd(tgr),
+            tpr.mean = mean(tpr),
+            tpr.median = median(tpr),
+            tpr.sd = sd(tpr),
+            N = n()) %>%
+  kable()
+
+ggplot(std.f, aes(tgr)) +
+  geom_histogram() +
+  facet_grid(.~system) +
+  ggtitle("Distribution of time between graphitization and running")
+ggplot(std.f, aes(tpr)) +
+  geom_histogram() +
+  facet_grid(.~system) +
+  ggtitle("Distribution of time between pressing and running")
+```
+
+### Plots 
+
+Time between graphitization and being run on the machine.
+```{r, message=FALSE}
+qplot(tgr, sigma, data = std.f, color = f_modern) +
+  geom_smooth() + facet_grid(.~ system) +
+  ggtitle("Sigma vs time between graphitization and running")
+qplot(tgr, frep_err, data = std.f, color = f_modern) +
+  geom_smooth() + facet_grid(.~ system) +
+  ggtitle("Reported error vs time between graphitization and running")
 ```
 
 Time between pressing and running
 
-```{r, warning=FALSE}
-qplot(tpr/24, normFm, data = std.f, color = splits) + geom_smooth() + facet_grid(.~ system)
-qplot(tpr/24, frep_err, data = std.f, color = splits) + geom_smooth() + facet_grid(.~ system)
+```{r, warning=FALSE, message=FALSE}
+qplot(tpr, sigma, data = std.f, color = f_modern) +
+  geom_smooth() +
+  facet_grid(.~ system) +
+  ggtitle("Sigma vs. time between pressing and running")
+qplot(tpr, frep_err, data = std.f, color = f_modern) + geom_smooth() + facet_grid(.~ system) +
+  ggtitle("Relative reported error vs. time between pressing and running")
 ```
 
