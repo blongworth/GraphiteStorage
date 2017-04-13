@@ -11,7 +11,7 @@ whether there's a systematic bias on the secondaries in that tray from
 touching the vial cap.
 
 Need to look at:
-* Large vs small vials
+* Large vs small vials: reactors 31-40,>=70 are 6mm tubes
 * comparison to undropped samples
 
 ```{r}
@@ -20,6 +20,7 @@ suppressMessages(library(tidyverse))
 library(RODBC)
 library(knitr)
 library(readxl)
+options(digits = 3)
 ```
 
 ```{r}
@@ -40,44 +41,44 @@ mst_num, wheel, runtime, snics_raw.tp_num, osg_num, sample_name,
 db <- conNOSAMS()
 rawdata <- sqlQuery(db, query)
 odbcClose(db)
-rawdata <- arrange(rawdata, osg_num, mst_num)
+rawdata <- rawdata %>% mutate(rt = as.POSIXct(runtime)) %>%
+  arrange(osg_num, mst_num)
 
 # get results for dropped samples
-query <- paste0("SELECT
-            wheel, runtime, snics_results.tp_num, osg_num, sample_name, 
-            sample_type, del_13c, fm_corr, sig_fm_corr
-          FROM snics_results
-          JOIN target ON target.tp_num = snics_results.tp_num
-	WHERE sample_type IN ('B', 'SS')
-          AND osg_num IN (", paste(dropped, collapse = ","),")")
-
-db <- conNOSAMS()
-data <- sqlQuery(db, query)
-odbcClose(db)
+data <- getQCData('01-01-2017', osg = dropped)
 
 ```
 
 
 ```{r}
-ggplot(rawdata, aes(as.factor(mst_num), he14_12, color = wheel)) +
-  geom_line() + geom_point() + facet_grid(osg_num ~ ., scales = "free") +
-  ggtitle("Raw 14/12 measurements")
+ggplot(rawdata, aes(rt, he14_12, color = wheel)) +
+  geom_line() + geom_point() + facet_wrap(~osg_num, scales = "free") +
+  ggtitle("Raw 14/12 measurements") + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
 ```
 
 ```{r}
-options(digits = 3)
-
 data %>% 
   arrange(osg_num) %>% 
-  mutate(fm_corr = round(fm_corr, digits = 3), 
-         sig_fm_corr = round(sig_fm_corr, digits = 3)) %>%
-  select(sample_name, osg_num, wheel, fm_corr, sig_fm_corr) %>%
-  unite(fm_corr, sig_fm_corr, col = "Fm", sep = " +- ") %>%
+  mutate(f_modern = round(f_modern, digits = 3), 
+         rep_err = round(rep_err, digits = 3)) %>%
+  select(name, osg_num, wheel, f_modern, rep_err) %>%
+  unite(f_modern, rep_err, col = "Fm", sep = " +- ") %>%
   kable()
-
-ggplot(data, aes(osg_num, fm_corr, color = wheel)) +
-  geom_pointrange(aes(ymin = fm_corr - sig_fm_corr, ymax = fm_corr + sig_fm_corr)) + 
-  geom_point() 
-
 ```
 
+```{r, fig.height=8, message=FALSE}
+ggplot(data, aes(name, normFm, color = wheel)) +
+  geom_pointrange(aes(ymin = normFm - frep_err, ymax = normFm + frep_err)) + 
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+
+```{r, fig.height=8, message=FALSE}
+ggplot(data, aes(name, sigma, color = wheel)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
