@@ -1,0 +1,83 @@
+---
+title: 'Graphite storage issues'
+date: 'March 17, 2017'
+output:
+  html_document: default
+  html_notebook: default
+---
+
+A tray of graphite was dropped in the SPL. This analysis checks to see
+whether there's a systematic bias on the secondaries in that tray from
+touching the vial cap.
+
+Need to look at:
+* Large vs small vials
+* comparison to undropped samples
+
+```{r}
+suppressMessages(library(amstools))
+suppressMessages(library(tidyverse))
+library(RODBC)
+library(knitr)
+library(readxl)
+```
+
+```{r}
+
+# Load file of dropped OSG nums
+dropped <- read_excel("dropped graphite touched cap.xlsx")
+dropped <- dropped$osg
+
+# Get raw data for dropped samples from DB
+query <- paste0("SELECT
+mst_num, wheel, runtime, snics_raw.tp_num, osg_num, sample_name, 
+	sample_type, ok_calc, le12c, he13_12, he14_12
+	FROM snics_raw
+	JOIN target ON target.tp_num = snics_raw.tp_num
+	WHERE sample_type IN ('B', 'SS')
+  AND osg_num IN (", paste(dropped, collapse = ","), ")")
+
+db <- conNOSAMS()
+rawdata <- sqlQuery(db, query)
+odbcClose(db)
+rawdata <- arrange(rawdata, osg_num, mst_num)
+
+# get results for dropped samples
+query <- paste0("SELECT
+            wheel, runtime, snics_results.tp_num, osg_num, sample_name, 
+            sample_type, del_13c, fm_corr, sig_fm_corr
+          FROM snics_results
+          JOIN target ON target.tp_num = snics_results.tp_num
+	WHERE sample_type IN ('B', 'SS')
+          AND osg_num IN (", paste(dropped, collapse = ","),")")
+
+db <- conNOSAMS()
+data <- sqlQuery(db, query)
+odbcClose(db)
+
+```
+
+
+```{r}
+ggplot(rawdata, aes(as.factor(mst_num), he14_12, color = wheel)) +
+  geom_line() + geom_point() + facet_grid(osg_num ~ ., scales = "free") +
+  ggtitle("Raw 14/12 measurements")
+```
+
+```{r}
+options(digits = 3)
+
+data %>% 
+  arrange(osg_num) %>% 
+  mutate(fm_corr = round(fm_corr, digits = 3), 
+         sig_fm_corr = round(sig_fm_corr, digits = 3)) %>%
+  select(sample_name, osg_num, wheel, fm_corr, sig_fm_corr) %>%
+  unite(fm_corr, sig_fm_corr, col = "Fm", sep = " +- ") %>%
+  kable()
+
+ggplot(data, aes(osg_num, fm_corr, color = wheel)) +
+  geom_pointrange(aes(ymin = fm_corr - sig_fm_corr, ymax = fm_corr + sig_fm_corr)) + 
+  geom_point() 
+
+```
+
