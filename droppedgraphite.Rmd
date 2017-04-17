@@ -1,9 +1,10 @@
 ---
-title: 'Graphite storage issues'
-date: 'March 17, 2017'
+title: "Graphite storage issues"
 output:
   html_document: default
   html_notebook: default
+  word_document: default
+date: "March 17, 2017"
 ---
 
 A tray of graphite was dropped in the SPL. This analysis checks to see
@@ -47,6 +48,18 @@ rawdata <- rawdata %>% mutate(rt = as.POSIXct(runtime)) %>%
 # get results for dropped samples
 data <- getQCData('01-01-2017', osg = dropped)
 
+# get reactors for dropped samples
+query <- paste0("SELECT
+osg_num, gf_reactor as reactor 
+	FROM graphite
+	WHERE osg_num IN (", paste(dropped, collapse = ","), ")")
+
+db <- conNOSAMS()
+reactor <- sqlQuery(db, query)
+odbcClose(db)
+
+reactor <- mutate(reactor, tube = ifelse((reactor %in% 31:40) | reactor > 69, "6mm", "9mm"))
+data <- inner_join(data, reactor)
 ```
 
 
@@ -69,16 +82,16 @@ data %>%
   kable()
 ```
 
-```{r, fig.height=8, message=FALSE}
-ggplot(data, aes(name, normFm, color = wheel)) +
+```{r, fig.height=8, message=FALSE, warning=FALSE}
+ggplot(data, aes(name, normFm, color = tube, shape = wheel)) +
   geom_pointrange(aes(ymin = normFm - frep_err, ymax = normFm + frep_err)) + 
   geom_point() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
 
-```{r, fig.height=8, message=FALSE}
-ggplot(data, aes(name, sigma, color = wheel)) +
+```{r, fig.height=8, message=FALSE, warning=FALSE}
+ggplot(data, aes(name, sigma, color = tube, shape = wheel)) +
   geom_point() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
