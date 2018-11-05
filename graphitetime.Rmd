@@ -44,7 +44,7 @@ std.f <- filter(std, tgr < 100,
 
 Median times are probably more representitive.
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE}
 
 std.f %>% group_by(system) %>%
   select(system, tgr, tpr) %>%
@@ -67,7 +67,7 @@ bymonth <- std.f %>% group_by(year, month, system) %>%
             N = n()) %>%
   mutate(date = as.factor(mdy(sprintf('%s %s %s', month, "1", year))))
 
-kable(bymonth)
+#kable(bymonth)
 
 ggplot(bymonth, aes(date, tgr.median)) +
   geom_bar(aes(fill = system), stat = "identity", position = "dodge") +
