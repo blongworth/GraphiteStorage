@@ -1,0 +1,57 @@
+---
+title: "Pressed Target Storage"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+
+Results of pressed target storage tests on CFAMS and USAMS. Blank material was left under various conditions to determine which is best for pressed target storage.
+
+
+```{r setup, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+
+# CFAMS
+
+Large Tiri-F samples were combined and then split into 10 targets. These and 5 Ceylon graphite targets were stored for two weeks before being analysed. 2 Tiri-F and one Ceylon were stored under the following conditions: in air on top of the drybox, in the drybox, sealed in a food saver vacuum bag on top of the vacuum oven, in the drying oven at 70C, and in a vacuum oven at approx. 60C.
+
+```{r}
+# Get data
+library(odbc)
+con <- amstools::conNOSAMS()
+query <- "SELECT wheel, wheel_pos, runtime, sample_name, num_runs, 
+            tot_runs, norm_ratio, int_err, ext_err
+          FROM snics_results
+          WHERE wheel = 'CFAMS100218' AND wheel_pos > 113"
+data <- dbGetQuery(con, query)
+
+data <- mutate(data, max_err = pmax(int_err, ext_err), 
+                     type = ifelse(wheel_pos > 118, "TIRI-F", "Ceylon"))
+treatment <- c("Air", "Dry Box", "Oven", "Vac Oven", "Vac Bag")
+data$treatment <- treatment
+data$treatment[11:15] <- c("Oven", "Dry Box", "Vac Bag", "Air", "Vac Oven")
+data %>%
+  select(wheel_pos, type, treatment, norm_ratio, max_err) %>%
+  knitr::kable(digits = 5)
+```
+
+```{r}
+# plot
+ggplot(data, aes(treatment, norm_ratio, color = type)) +
+#  geom_boxplot() +
+  geom_hline(yintercept = 0.0012, color = 'grey') +
+  geom_hline(yintercept = 0.0032, color = 'grey') +
+  geom_hline(yintercept = 0.0022) +
+  geom_pointrange(aes(ymin = norm_ratio - max_err, ymax = norm_ratio + max_err), 
+                  position = position_jitter(width = 0.1, height = 0)) +
+  ylim(0, 0.005)
+```
+
+Plot shows the normalized ratios (not blank corrected) of the TIRI-F and Ceylon samples from the test. Error bars are the maximum of the internal and external errors. The black line is the 2018 average for TIRI-F on CFAMS (0.0022) and the grey lines are the std dev of 2018 measurements of TIRI-F on CFAMS.
+
+For Tiri-F, Air, Drybox and Oven treatments are pretty much the same while the vacuum bag and vacuum oven may be worse. For ceylon, Air, Drybox and Vac oven were all the same, while the oven and Vac bag were slightly better. Error bars are overlapping or close to overlapping for most points.
