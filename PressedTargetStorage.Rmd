@@ -63,6 +63,8 @@ For Tiri-F, Air, Drybox and Oven treatments are pretty much the same while the v
 
 # USAMS
 
+The USAMS experiment was done similarly to the CFAMS experiment. Pooled C-1 was used instead of TIRI-F, and the vacuum bag test was dropped. Samples were stored for about two weeks.
+
 ```{r}
 # Get data
 con <- amstools::conNOSAMS()
@@ -93,6 +95,10 @@ ggplot(data, aes(treatment, norm_ratio, color = type)) +
   geom_hline(yintercept = 0.0004, color = '#00BFC4') +
   geom_pointrange(aes(ymin = norm_ratio - max_err, ymax = norm_ratio + max_err), 
                   position = position_jitter(width = 0.1, height = 0)) +
-  ylim(0, 0.005) +
+  ylim(0, 0.003) +
   theme_classic()
 ```
+
+Plot shows the normalized ratios (not blank corrected) of the C-1 and Ceylon samples from the test. Control treatment is fresh C-1 and Ceylon pressed for the wheel. Error bars are the maximum of the internal and external errors. The blue line is the 2018 average for C-1 on USAMS (0.0009) and the lighter lines are the std dev of 2018 measurements. The red line and lighter red lines are the mean and SD of Ceylon on USAMS.
+
+For C-1, Air, Drybox and Oven treatments are pretty much the same while the vacuum oven may be worse. For ceylon, Air, oven and Vac oven were all the same, while the oven was slightly worse. Error bars are overlapping or close to overlapping for most points. Most storage results were not significantly worse than fresh samples or historical values.
