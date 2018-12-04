@@ -1,10 +1,10 @@
 ---
 title: "Pressed Target Storage"
 output:
+  pdf_document: default
+  html_notebook: default
   html_document:
     df_print: paged
-  html_notebook: default
-  pdf_document: default
 ---
 
 Results of pressed target storage tests on CFAMS and USAMS. Blank material was left under various conditions to determine which is best for pressed target storage.
@@ -21,8 +21,9 @@ library(odbc)
 
 Large Tiri-F samples were combined and then split into 10 targets. These and 5 Ceylon graphite targets were stored for two weeks before being analysed. 2 Tiri-F and one Ceylon were stored under the following conditions: in air on top of the drybox, in the drybox, sealed in a food saver vacuum bag on top of the vacuum oven, in the drying oven at 70C, and in a vacuum oven at approx. 60C.
 
+## Get data
+
 ```{r}
-# Get data
 con <- amstools::conNOSAMS()
 query <- "SELECT wheel, wheel_pos, runtime, sample_name, num_runs, 
             tot_runs, norm_ratio, int_err, ext_err
@@ -41,8 +42,9 @@ data %>%
   knitr::kable(digits = 5)
 ```
 
+## plot
+
 ```{r}
-# plot
 ggplot(data, aes(treatment, norm_ratio, color = type)) +
   geom_hline(yintercept = 0.0012, color = '#F8BEBA') +
   geom_hline(yintercept = 0.0032, color = '#F8BEBA') +
@@ -65,8 +67,9 @@ For Tiri-F, Air, Drybox and Oven treatments are pretty much the same while the v
 
 The USAMS experiment was done similarly to the CFAMS experiment. Pooled C-1 was used instead of TIRI-F, and the vacuum bag test was dropped. Samples were stored for about two weeks.
 
+## Get data
+
 ```{r}
-# Get data
 con <- amstools::conNOSAMS()
 query <- "SELECT wheel, wheel_pos, runtime, sample_name, num_runs, 
             tot_runs, norm_ratio, int_err, ext_err
@@ -83,9 +86,9 @@ data %>%
   knitr::kable(digits = 5)
 ```
 
+## plot
 
 ```{r}
-# plot
 ggplot(data, aes(treatment, norm_ratio, color = type)) +
   geom_hline(yintercept = 0.0009, color = '#F8BEBA') +
   geom_hline(yintercept = 0.0012, color = '#F8BEBA') +
