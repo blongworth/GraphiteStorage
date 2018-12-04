@@ -1,10 +1,10 @@
 ---
 title: "Pressed Target Storage"
 output:
-  pdf_document: default
-  html_notebook: default
   html_document:
     df_print: paged
+  html_notebook: default
+  pdf_document: default
 ---
 
 Results of pressed target storage tests on CFAMS and USAMS. Blank material was left under various conditions to determine which is best for pressed target storage.
@@ -56,7 +56,7 @@ ggplot(data, aes(treatment, norm_ratio, color = type)) +
   theme_classic()
 ```
 
-Plot shows the normalized ratios (not blank corrected) of the TIRI-F and Ceylon samples from the test. Error bars are the maximum of the internal and external errors. The blue line is the 2018 average for TIRI-F on CFAMS (0.0022) and the lighter lines are the std dev of 2018 measurements of TIRI-F on CFAMS. The red line and lighter red lines are the mean and SD of Ceylon on CFAMS.
+Plot shows the normalized ratios (not blank corrected) of the TIRI-F and Ceylon samples from the test. Error bars are the maximum of the internal and external errors. The red line is the 2018 average for TIRI-F on CFAMS (0.0022) and the lighter lines are the std dev of 2018 measurements of TIRI-F on CFAMS. The blue line and lighter blue lines are the mean and SD of Ceylon on CFAMS.
 
 For Tiri-F, Air, Drybox and Oven treatments are pretty much the same while the vacuum bag and vacuum oven may be worse. For ceylon, Air, Drybox and Vac oven were all the same, while the oven and Vac bag were slightly better. Error bars are overlapping or close to overlapping for most points.
 
@@ -99,6 +99,6 @@ ggplot(data, aes(treatment, norm_ratio, color = type)) +
   theme_classic()
 ```
 
-Plot shows the normalized ratios (not blank corrected) of the C-1 and Ceylon samples from the test. Control treatment is fresh C-1 and Ceylon pressed for the wheel. Error bars are the maximum of the internal and external errors. The blue line is the 2018 average for C-1 on USAMS (0.0009) and the lighter lines are the std dev of 2018 measurements. The red line and lighter red lines are the mean and SD of Ceylon on USAMS.
+Plot shows the normalized ratios (not blank corrected) of the C-1 and Ceylon samples from the test. Control treatment is fresh C-1 and Ceylon pressed for the wheel. Error bars are the maximum of the internal and external errors. The red line is the 2018 average for C-1 on USAMS (0.0009) and the lighter lines are the std dev of 2018 measurements. The blue line and lighter blue lines are the mean and SD of Ceylon on USAMS.
 
 For C-1, Air, Drybox and Oven treatments are pretty much the same while the vacuum oven may be worse. For ceylon, Air, oven and Vac oven were all the same, while the oven was slightly worse. Error bars are overlapping or close to overlapping for most points. Most storage results were not significantly worse than fresh samples or historical values.
