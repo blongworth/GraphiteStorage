@@ -1,10 +1,10 @@
 ---
 title: "Pressed Target Storage"
 output:
-  pdf_document: default
-  html_notebook: default
   html_document:
     df_print: paged
+  html_notebook: default
+  pdf_document: default
 ---
 
 Results of pressed target storage tests on CFAMS and USAMS. Blank material was left under various conditions to determine which is best for pressed target storage.
@@ -37,12 +37,17 @@ data <- mutate(data, max_err = pmax(int_err, ext_err),
 treatment <- c("Air", "Dry Box", "Oven", "Vac Oven", "Vac Bag")
 data$treatment <- treatment
 data$treatment[11:15] <- c("Oven", "Dry Box", "Vac Bag", "Air", "Vac Oven")
+```
+
+## Data table
+
+```{r}
 data %>%
   select(wheel_pos, type, treatment, norm_ratio, max_err) %>%
   knitr::kable(digits = 5)
 ```
 
-## plot
+## Plot
 
 ```{r}
 ggplot(data, aes(treatment, norm_ratio, color = type)) +
@@ -81,12 +86,17 @@ data <- mutate(data, max_err = pmax(int_err, ext_err),
                      type = ifelse(grepl("C-1", sample_name), "C-1", "Ceylon"))
 treatment <- c("Control", "Air", "Air", "Air", "Dry Box", "Dry Box", "Dry Box", "Oven", "Oven", "Oven", "Vac Oven", "Vac Oven", "Vac Oven", "Control", "Control")
 data$treatment <- treatment
+```
+
+## Data table
+
+```{r}
 data %>%
   select(wheel_pos, type, treatment, norm_ratio, max_err) %>%
   knitr::kable(digits = 5)
 ```
 
-## plot
+## Plot
 
 ```{r}
 ggplot(data, aes(treatment, norm_ratio, color = type)) +

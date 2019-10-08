@@ -18,7 +18,7 @@ Need to look at:
 ```{r}
 suppressMessages(library(amstools))
 suppressMessages(library(tidyverse))
-library(RODBC)
+library(odbc)
 library(knitr)
 library(readxl)
 options(digits = 3)
@@ -40,8 +40,7 @@ mst_num, wheel, runtime, snics_raw.tp_num, osg_num, sample_name,
   AND osg_num IN (", paste(dropped, collapse = ","), ")")
 
 db <- conNOSAMS()
-rawdata <- sqlQuery(db, query)
-odbcClose(db)
+rawdata <- dbGetQuery(db, query)
 rawdata <- rawdata %>% mutate(rt = as.POSIXct(runtime)) %>%
   arrange(osg_num, mst_num)
 
@@ -54,9 +53,7 @@ osg_num, gf_reactor as reactor
 	FROM graphite
 	WHERE osg_num IN (", paste(dropped, collapse = ","), ")")
 
-db <- conNOSAMS()
-reactor <- sqlQuery(db, query)
-odbcClose(db)
+reactor <- dbGetQuery(db, query)
 
 reactor <- mutate(reactor, tube = ifelse((reactor %in% 31:40) | reactor > 69, "6mm", "9mm"))
 data <- inner_join(data, reactor)
