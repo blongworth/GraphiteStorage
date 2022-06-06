@@ -14,6 +14,42 @@ Results of pressed target storage tests on CFAMS and USAMS. Blank material was l
 library(tidyverse)
 library(ggplot2)
 library(odbc)
+
+theme_set(theme_classic())
+
+# Define plot
+plot_storage <- function(df, c_avg, c_sd, p_avg, p_sd) {
+  ggplot(df, aes(treatment, norm_ratio, color = type)) +
+    geom_hline(yintercept = p_avg, color = 'grey') +
+    geom_hline(yintercept = p_avg + p_sd, color = '#00b7bd') +
+    geom_hline(yintercept = p_avg - p_sd, color = '#00b7bd') +
+    geom_hline(yintercept = c_avg, color = 'grey') +
+    geom_hline(yintercept = c_avg + c_sd, color = '#b7bf10') +
+    geom_hline(yintercept = c_avg - c_sd, color = '#b7bf10') +
+    geom_pointrange(aes(ymin = norm_ratio - max_err, ymax = norm_ratio + max_err), 
+                    position = position_jitter(width = 0.1, height = 0)) +
+    scale_color_manual(values = c("#00b7bd", "#b7bf10")) +
+    ylim(0, 0.005) +
+    theme_classic()
+}
+
+# Get data
+con <- amstools::conNOSAMS()
+query <- "SELECT wheel, wheel_pos, runtime, sample_name, num_runs, 
+            tot_runs, norm_ratio, int_err, ext_err
+          FROM snics_results
+          WHERE (wheel = 'CFAMS100218' AND wheel_pos > 113)
+          OR wheel = 'USAMS112818' AND wheel_pos > 86"
+data <- dbGetQuery(con, query) |> 
+  mutate(max_err = pmax(int_err, ext_err), 
+         type = case_when(grepl("C-1", sample_name) ~ "C-1",
+                          grepl("TIRI", sample_name) ~ "TIRI-F",
+                          TRUE ~ "Ceylon"),
+         type = ordered(type, c("C-1", "TIRI-F", "Ceylon")),
+         treatment = c(rep(c("Air", "Dry Box", "Oven", "Vac Oven", "Vac Bag"), 2),
+         c("Oven", "Dry Box", "Vac Bag", "Air", "Vac Oven", "Control", "Air", 
+           "Air", "Air", "Dry Box", "Dry Box", "Dry Box", "Oven", "Oven", 
+           "Oven", "Vac Oven", "Vac Oven", "Vac Oven", "Control", "Control")))
 ```
 
 
@@ -21,97 +57,28 @@ library(odbc)
 
 Large Tiri-F samples were combined and then split into 10 targets. These and 5 Ceylon graphite targets were stored for two weeks before being analysed. 2 Tiri-F and one Ceylon were stored under the following conditions: in air on top of the drybox, in the drybox, sealed in a food saver vacuum bag on top of the vacuum oven, in the drying oven at 70C, and in a vacuum oven at approx. 60C.
 
-## Get data
-
 ```{r}
-con <- amstools::conNOSAMS()
-query <- "SELECT wheel, wheel_pos, runtime, sample_name, num_runs, 
-            tot_runs, norm_ratio, int_err, ext_err
-          FROM snics_results
-          WHERE wheel = 'CFAMS100218' AND wheel_pos > 113"
-data <- dbGetQuery(con, query)
-
-data <- mutate(data, max_err = pmax(int_err, ext_err), 
-                     type = ifelse(wheel_pos > 118, "TIRI-F", "Ceylon"),
-                     type = ordered(type, c("TIRI-F", "Ceylon")))
-treatment <- c("Air", "Dry Box", "Oven", "Vac Oven", "Vac Bag")
-data$treatment <- treatment
-data$treatment[11:15] <- c("Oven", "Dry Box", "Vac Bag", "Air", "Vac Oven")
+data |> 
+  filter(wheel == 'CFAMS100218') |> 
+  plot_storage(0.0009, 0.0006, 0.0022, 0.001)
 ```
 
-## Data table
-
-```{r}
-data %>%
-  select(wheel_pos, type, treatment, norm_ratio, max_err) %>%
-  knitr::kable(digits = 5)
-```
-
-## Plot
-
-```{r}
-ggplot(data, aes(treatment, norm_ratio, color = type)) +
-  geom_hline(yintercept = 0.0012, color = '#F8BEBA') +
-  geom_hline(yintercept = 0.0032, color = '#F8BEBA') +
-  geom_hline(yintercept = 0.0022, color = '#F8766D') +
-  geom_hline(yintercept = 0.0003, color = '#89C3C4') +
-  geom_hline(yintercept = 0.0015, color = '#89C3C4') +
-  geom_hline(yintercept = 0.0009, color = '#00BFC4') +
-  geom_pointrange(aes(ymin = norm_ratio - max_err, ymax = norm_ratio + max_err), 
-                  position = position_jitter(width = 0.1, height = 0)) +
-  ylim(0, 0.005) +
-  theme_classic()
-```
-
-Plot shows the normalized ratios (not blank corrected) of the TIRI-F and Ceylon samples from the test. Error bars are the maximum of the internal and external errors. The red line is the 2018 average for TIRI-F on CFAMS (0.0022) and the lighter lines are the std dev of 2018 measurements of TIRI-F on CFAMS. The blue line and lighter blue lines are the mean and SD of Ceylon on CFAMS.
+Plot shows the normalized ratios (not blank corrected) of the C-1 and Ceylon samples from the test. Control treatment is fresh C-1 and Ceylon pressed for the wheel. Error bars are the maximum of the internal and external errors. The blue lines are the 2018 sd for C-1, yellow lines are sd for Ceylon, and the grey lines are the averages of 2018 measurements for each material. 
 
 For Tiri-F, Air, Drybox and Oven treatments are pretty much the same while the vacuum bag and vacuum oven may be worse. For ceylon, Air, Drybox and Vac oven were all the same, while the oven and Vac bag were slightly better. Error bars are overlapping or close to overlapping for most points.
-
 
 # USAMS
 
 The USAMS experiment was done similarly to the CFAMS experiment. Pooled C-1 was used instead of TIRI-F, and the vacuum bag test was dropped. Samples were stored for about two weeks.
 
-## Get data
-
 ```{r}
-con <- amstools::conNOSAMS()
-query <- "SELECT wheel, wheel_pos, runtime, sample_name, num_runs, 
-            tot_runs, norm_ratio, int_err, ext_err
-          FROM snics_results
-          WHERE wheel = 'USAMS112818' AND wheel_pos > 86"
-data <- dbGetQuery(con, query)
-
-data <- mutate(data, max_err = pmax(int_err, ext_err), 
-                     type = ifelse(grepl("C-1", sample_name), "C-1", "Ceylon"))
-treatment <- c("Control", "Air", "Air", "Air", "Dry Box", "Dry Box", "Dry Box", "Oven", "Oven", "Oven", "Vac Oven", "Vac Oven", "Vac Oven", "Control", "Control")
-data$treatment <- treatment
+data |> 
+  filter(wheel == 'USAMS112818') |> 
+  plot_storage(0.0004, 0.0001, 0.0009, 0.0003)
 ```
 
-## Data table
+Plot shows the normalized ratios (not blank corrected) of the C-1 and Ceylon samples from the test. Control treatment is fresh C-1 and Ceylon pressed for the wheel. Error bars are the maximum of the internal and external errors. The blue lines are the 2018 sd for C-1, yellow lines are sd for Ceylon, and the grey lines are the averages of 2018 measurements for each material. 
 
-```{r}
-data %>%
-  select(wheel_pos, type, treatment, norm_ratio, max_err) %>%
-  knitr::kable(digits = 5)
-```
-
-## Plot
-
-```{r}
-ggplot(data, aes(treatment, norm_ratio, color = type)) +
-  geom_hline(yintercept = 0.0009, color = '#F8BEBA') +
-  geom_hline(yintercept = 0.0012, color = '#F8BEBA') +
-  geom_hline(yintercept = 0.0006, color = '#F8766D') +
-  geom_hline(yintercept = 0.0003, color = '#89C3C4') +
-  geom_hline(yintercept = 0.0005, color = '#89C3C4') +
-  geom_hline(yintercept = 0.0004, color = '#00BFC4') +
-  geom_pointrange(aes(ymin = norm_ratio - max_err, ymax = norm_ratio + max_err), 
-                  position = position_jitter(width = 0.1, height = 0)) +
-  ylim(0, 0.003) +
-  theme_classic()
-```
-
-Plot shows the normalized ratios (not blank corrected) of the C-1 and Ceylon samples from the test. Control treatment is fresh C-1 and Ceylon pressed for the wheel. Error bars are the maximum of the internal and external errors. The red line is the 2018 average for C-1 on USAMS (0.0009) and the lighter lines are the std dev of 2018 measurements. The blue line and lighter blue lines are the mean and SD of Ceylon on USAMS.
+# Summary
 
 For C-1, Air, Drybox and Oven treatments are pretty much the same while the vacuum oven may be worse. For ceylon, Air, oven and Vac oven were all the same, while the oven was slightly worse. Error bars are overlapping or close to overlapping for most points. Most storage results were not significantly worse than fresh samples or historical values.
