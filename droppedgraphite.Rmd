@@ -45,7 +45,7 @@ rawdata <- rawdata %>% mutate(rt = as.POSIXct(runtime)) %>%
   arrange(osg_num, mst_num)
 
 # get results for dropped samples
-data <- getQCData('01-01-2017', osg = dropped)
+data <- getQCData('2017-01-01', osg = dropped)
 
 # get reactors for dropped samples
 query <- paste0("SELECT

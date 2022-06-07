@@ -10,31 +10,31 @@ What effect does the time between graphitization and analysis have on data quali
 Samples are large (>40umol) secondaries from both systems. I've also discarded samples with wild sigma and those older than 100 days. I can't see an obvious trend in the data, but it's likely that any smaller trends are masked by the distribution in time between graphitization and running.
 ```{r, warning=FALSE, message=FALSE}
 # libraries
+library(tidyverse)
 library(lubridate)
-library(dplyr)
-library(ggplot2)
 library(knitr)
+library(amstools)
+library(amsdata)
 
 # data
-load('qcData.rda')
 
-# format dates
-std$gf_date <- ymd(std$gf_date)
-std$tp_date_pressed <- ymd(std$tp_date_pressed)
-std$runtime <- as.Date(ymd_hms(std$runtime))
-std$tgr <- std$runtime - std$gf_date
-std$tpr <- std$runtime - std$tp_date_pressed
+std <- getStandards('2014-01-01', getcurrents = FALSE) |> 
+  mutate(system = str_sub(wheel, 1, 5),
+         sig_f_modern = pmax(f_int_error, f_ext_error),
+         sigma = sigma(f_modern, Fm_cons, sig_f_modern),
+         tgr = difftime(runtime, gf_date, units = 'days'),
+         tpr = difftime(runtime, tp_date_pressed, units = 'days'))
 
-# filter it
-std.f <- filter(std, tgr < 100,
-                tpr < 20, 
-                abs(sigma) < 20, 
-                normFm < 20,
-                primary == FALSE, 
-                frep_err < 10, 
-                fm_consensus > 0.1, 
-                fm_consensus < 1.6, 
-                gf_co2_qty > 40) %>%
+std.f <- std |> 
+  filter(tgr < 100,
+         tgr > 0,
+         tpr < 20, 
+         tpr > 0, 
+         abs(sigma) < 20, 
+         sample_type != "S", 
+         Fm_cons > 0.1, 
+         Fm_cons < 1.6, 
+         gf_co2_qty > 40) %>%
   mutate(runtime = as.Date(runtime),
          year = year(runtime),
          month = month(runtime)) 
@@ -96,9 +96,12 @@ Time between graphitization and being run on the machine.
 qplot(tgr, sigma, data = std.f, color = f_modern) +
   geom_smooth() + facet_grid(.~ system) +
   ggtitle("Sigma vs time between graphitization and running")
-qplot(tgr, frep_err, data = std.f, color = f_modern) +
+qplot(tgr, abs(sigma), data = std.f, color = f_modern) +
   geom_smooth() + facet_grid(.~ system) +
-  ggtitle("Reported error vs time between graphitization and running")
+  ggtitle("Absolute Sigma vs time between graphitization and running")
+# qplot(tgr, frep_err, data = std.f, color = f_modern) +
+#   geom_smooth() + facet_grid(.~ system) +
+#   ggtitle("Reported error vs time between graphitization and running")
 ```
 
 Time between pressing and running
@@ -108,7 +111,7 @@ qplot(tpr, sigma, data = std.f, color = f_modern) +
   geom_smooth() +
   facet_grid(.~ system) +
   ggtitle("Sigma vs. time between pressing and running")
-qplot(tpr, frep_err, data = std.f, color = f_modern) + geom_smooth() + facet_grid(.~ system) +
-  ggtitle("Relative reported error vs. time between pressing and running")
+# qplot(tpr, frep_err, data = std.f, color = f_modern) + geom_smooth() + facet_grid(.~ system) +
+#   ggtitle("Relative reported error vs. time between pressing and running")
 ```
 
